@@ -1,0 +1,16 @@
+# Chapter 4 requirements
+fastapi
+pydantic
+uvicorn
+pandas
+numpy
+scikit-learn
+PyOD
+# Chapter 5 requirements
+pytest
+# Chapter 7 requirements
+scikit_posthocs
+# Chapter 8 requirements
+streamlit
+seaborn
+plotly.express

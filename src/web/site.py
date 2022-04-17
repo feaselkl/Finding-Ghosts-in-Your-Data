@@ -1,0 +1,159 @@
+import streamlit as st
+import requests
+import pandas as pd
+import json
+import plotly.express as px
+
+st.set_page_config(layout="wide")
+
+@st.cache
+def process(server_url, method, sensitivity_score, debug, input_data_set):
+    full_server_url = f"{server_url}/{method}?sensitivity_score={sensitivity_score}&debug={debug}"
+    r = requests.post(
+        full_server_url,
+        data=input_data_set,
+        headers={"Content-Type": "application/json"}
+    )
+    return r
+
+# Used as a helper method for creating lists from JSON.
+@st.cache
+def convert_univariate_list_to_json(univariate_str):
+    # Remove brackets if they exist.
+    univariate_str = univariate_str.replace('[', '').replace(']', '')
+    univariate_list = univariate_str.split(',')
+    df = pd.DataFrame(univariate_list, columns={"value"})
+    df["key"] = ""
+    return df.to_json(orient="records")
+
+def main():
+    st.write(
+    """
+    # Finding Ghosts in Your Data
+
+    This is an outlier detection application based on the book Finding Ghosts in Your Data (Apress, 2022).  The purpose of this site is to provide a simple interface for interacting with the outlier detection API we build over the course of the book.
+
+    ## Instructions
+    First, select the method you wish to use for outlier detection.  Then, enter the dataset you wish to process.  This dataset should be posted as a JSON array with the appropriate attributes.  The specific attributes you need to enter will depend on the method you chose above.
+
+    If you switch between methods, you will see a sample dataset corresponding to the expected structure of the data.  Follow that pattern for your data.
+    """
+    )
+
+    server_url = "http://localhost/detect"
+    method = st.selectbox(label="Choose the method you wish to use.", options = ("univariate", "multivariate", "single_timeseries", "multi_timeseries"))
+    sensitivity_score = st.slider(label = "Choose a sensitivity score.", min_value=1, max_value=100, value=50)
+    debug = st.checkbox(label="Run in Debug mode?")
+    if method == "univariate":
+        convert_to_json = st.checkbox(label="Convert data in list to JSON format?  If you check this box, enter data as a comma-separated list of values.")
+    
+    if method == "univariate":
+        starting_data_set = """[
+        {"key": "1","value": 1},
+        {"key": "2", "value": 2},
+        {"key": "3", "value": 3},
+        {"key": "4", "value": 4},
+        {"key": "5", "value": 5},
+        {"key": "6", "value": 6},
+        {"key": "8", "value": 95}
+    ]"""
+    elif method == "multivariate":
+        starting_data_set = """[
+        {"key": "1","value": [1, 2]},
+        {"key": "2", "value": 2},
+        {"key": "3", "value": 3},
+        {"key": "4", "value": 4},
+        {"key": "5", "value": 5},
+        {"key": "6", "value": 6},
+        {"key": "8", "value": 95}
+    ]"""
+    elif method == "single_timeseries":
+        starting_data_set = """[
+        {"key": "1","value": 1},
+        {"key": "2", "value": 2},
+        {"key": "3", "value": 3},
+        {"key": "4", "value": 4},
+        {"key": "5", "value": 5},
+        {"key": "6", "value": 6},
+        {"key": "8", "value": 95}
+    ]"""
+    elif method == "multi_timeseries":
+        starting_data_set = """[
+        {"key": "1","value": 1},
+        {"key": "2", "value": 2},
+        {"key": "3", "value": 3},
+        {"key": "4", "value": 4},
+        {"key": "5", "value": 5},
+        {"key": "6", "value": 6},
+        {"key": "8", "value": 95}
+    ]"""
+    else:
+        starting_data_set = "Select a method."
+    input_data = st.text_area(label = "Data to process (in JSON format):", value=starting_data_set, height=300)
+
+    if st.button(label="Detect!"):
+        if method=="univariate" and convert_to_json:
+            input_data = convert_univariate_list_to_json(input_data)
+        resp = process(server_url, method, sensitivity_score, debug, input_data)
+        res = json.loads(resp.content)
+        df = pd.DataFrame(res['anomalies'])
+
+        st.header('Anomaly score per data point')
+        colors = {True: 'red', False: 'blue'}
+        g = px.scatter(df, x=df["value"], y=df["anomaly_score"], color=df["is_anomaly"], color_discrete_map=colors,
+                    symbol=df["is_anomaly"], symbol_sequence=['square', 'circle'],
+                    hover_data=["sds", "mads", "iqrs", "grubbs", "gesd", "dixon", "gaussian_mixture"])
+        st.plotly_chart(g, use_container_width=True)
+
+
+        tbl = df[['key', 'value', 'anomaly_score', 'is_anomaly', 'sds', 'mads', 'iqrs', 'grubbs', 'gesd', 'dixon', 'gaussian_mixture']]
+        st.write(tbl)
+
+        if debug:
+            col11, col12 = st.columns(2)
+
+            with col11:                
+                st.header('Debug weights')
+                st.write(res['debug_weights'])
+
+            with col12:
+                st.header("Tests Run")
+                st.write(res['debug_details']['Test diagnostics']['Tests Run'])
+                if "Extended tests" in res['debug_details']['Test diagnostics']:
+                    st.write(res['debug_details']['Test diagnostics']['Extended tests'])
+                if "Gaussian mixture test" in res['debug_details']['Test diagnostics']:
+                    st.write(res['debug_details']['Test diagnostics']['Gaussian mixture test'])
+
+            col21, col22 = st.columns(2)
+
+            with col21:
+                st.header("Base Calculations")
+                st.write(res['debug_details']['Test diagnostics']['Base calculations'])
+
+            with col22:
+                st.header("Fitted Calculations")
+                if "Fitted calculations" in res['debug_details']['Test diagnostics']:
+                    st.write(res['debug_details']['Test diagnostics']['Fitted calculations'])
+
+            col31, col32 = st.columns(2)
+
+            with col31:
+                st.header("Initial Normality Checks")
+                if "Initial normality checks" in res['debug_details']['Test diagnostics']:
+                    st.write(res['debug_details']['Test diagnostics']['Initial normality checks'])
+
+            with col32:
+                st.header("Fitted Normality Checks")
+                if "Fitted Lambda" in res['debug_details']['Test diagnostics']:
+                    st.write(f"Fitted Lambda = {res['debug_details']['Test diagnostics']['Fitted Lambda']}")
+                if "Fitted normality checks" in res['debug_details']['Test diagnostics']:
+                    st.write(res['debug_details']['Test diagnostics']['Fitted normality checks'])
+                if "Fitting Status" in res['debug_details']['Test diagnostics']:
+                    st.write(res['debug_details']['Test diagnostics']["Fitting Status"])
+
+            st.header("Full Debug Details")
+            st.json(res['debug_details'])
+
+
+if __name__ == "__main__":
+    main()
