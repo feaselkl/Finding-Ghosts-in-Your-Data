@@ -1,5 +1,8 @@
-
-.vscode/*
-test/__pycache__/*
-src/app/models/__pycache__/*
-src/app/__pycache__/*
+code/.vscode/*
+code/test/__pycache__/*
+code/src/app/models/__pycache__/*
+code/src/app/__pycache__/*
+ch*/*
+*.docx
+*.dotx
+*.tmp
