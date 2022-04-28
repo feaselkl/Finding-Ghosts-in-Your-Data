@@ -142,8 +142,239 @@ def test_detect_multivariate_runs_cof(df_input, should_run_cof):
         did_run_cof = 0
     assert(should_run_cof == did_run_cof)
 
-# todo:  one anomaly
+@pytest.mark.parametrize("df_input, sensitivity_score, number_of_anomalies", [
+    (sample_input, 100, 6),     # Was 11 in chapter 10, 8 in chapter 11
+    (sample_input, 50, 6),      # Was 11 in chapter 10, 8 in chapter 11
+    (sample_input, 40, 6),      # Was 11 in chapter 10, 8 in chapter 11
+    (sample_input, 25, 6),      # Was 4 in chapter 10, 8 in chapter 11
+    (sample_input, 5, 5),       # Was 2 in chapter 10
+    (sample_input, 1, 3),       # Was 1 in chapter 10, 2 in chapter 11
+    (sample_input, 0, 0),
+])
+def test_detect_multivariate_cof_sample_sensitivity(df_input, sensitivity_score, number_of_anomalies):
+    # Arrange
+    df = pd.DataFrame(df_input, columns=["key", "vals"])
+    max_fraction_anomalies = 1.0
+    n_neighbors = 10
+    # Act
+    (df_out, weights, diagnostics) = detect_multivariate_statistical(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    print(df_out.sort_values(by=['anomaly_score']))
+    # Assert
+    assert(number_of_anomalies == df_out[df_out['is_anomaly'] == True].shape[0])
 
-# todo:  multiple anomalies
+@pytest.mark.parametrize("df_input, max_fraction_anomalies, number_of_anomalies", [
+    (sample_input, 1.0, 6),     # Was 8 in chapter 11
+    (sample_input, 0.8, 6),     # Was 8 in chapter 11
+    (sample_input, 0.6, 6),     # Was 8 in chapter 11
+    (sample_input, 0.4, 6),     # Was 8 in chapter 11
+    (sample_input, 0.2, 6),     # Was 8 in chapter 11
+    (sample_input, 0.1, 6),     # Was 8 in chapter 11
+    (sample_input, 0.01, 1),
+])
+def test_detect_multivariate_cof_sample_fraction(df_input, max_fraction_anomalies, number_of_anomalies):
+    # Arrange
+    df = pd.DataFrame(df_input, columns=["key", "vals"])
+    sensitivity_score = 50
+    n_neighbors = 10
+    # Act
+    (df_out, weights, diagnostics) = detect_multivariate_statistical(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    print(df_out.sort_values(by=['anomaly_score']))
+    # Assert
+    assert(number_of_anomalies == df_out[df_out['is_anomaly'] == True].shape[0])
 
-# todo:  no anomalies
+# Note that even when we don't see outliers, COF and LOCI may still catch minor differences.
+sample_input_one_outlier = [["1604", [87,16,6184.90844,0.771,11.72]],
+["1604", [87.0,16,6184.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.3,16,6186.90844,0.771,11.72]],
+["1604", [87.4,16,6185.90844,0.771,11.72]],
+["1604", [87.5,16,6184.90844,0.771,11.72]],
+["1604", [87.6,16,6183.90844,0.771,11.72]],
+["1604", [87.7,16,6182.90844,0.771,11.72]],
+["1604", [87.8,16,6181.90844,0.771,11.72]],
+["1604", [87.9,16,6185.90844,0.771,11.72]], # Changed because LOCI catches the "double-extreme" test case.
+["1604", [87.0,16,6189.90844,0.771,11.72]],
+["1604", [87.1,16,6188.90844,0.771,11.72]],
+["1604", [87.2,16,6187.90844,0.771,11.72]],
+["74610", [6640,18,32264.85829,0.647,25.97]]]
+
+@pytest.mark.parametrize("df_input, sensitivity_score, number_of_anomalies", [
+    (sample_input_one_outlier, 100, 1),
+    (sample_input_one_outlier, 98, 1),
+    (sample_input_one_outlier, 50, 1),
+    (sample_input_one_outlier, 40, 1),
+    (sample_input_one_outlier, 25, 1),
+    (sample_input_one_outlier, 5, 1),
+    (sample_input_one_outlier, 1, 1),
+    (sample_input_one_outlier, 0, 0),
+])
+def test_detect_multivariate_cof_single_sensitivity(df_input, sensitivity_score, number_of_anomalies):
+    # Arrange
+    df = pd.DataFrame(df_input, columns=["key", "vals"])
+    max_fraction_anomalies = 1.0
+    n_neighbors = 10
+    # Act
+    (df_out, weights, diagnostics) = detect_multivariate_statistical(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    print(df_out.sort_values(by=['anomaly_score']))
+    # Assert
+    assert(number_of_anomalies == df_out[df_out['is_anomaly'] == True].shape[0])
+
+@pytest.mark.parametrize("df_input, max_fraction_anomalies, number_of_anomalies", [
+    (sample_input_one_outlier, 1.0, 1),
+    (sample_input_one_outlier, 0.4, 1),
+    (sample_input_one_outlier, 0.3, 1),
+    (sample_input_one_outlier, 0.2, 1),
+    (sample_input_one_outlier, 0.1, 1),
+    (sample_input_one_outlier, 0.05, 1),
+    (sample_input_one_outlier, 0, 0),
+])
+def test_detect_multivariate_cof_single_fraction(df_input, max_fraction_anomalies, number_of_anomalies):
+    # Arrange
+    df = pd.DataFrame(df_input, columns=["key", "vals"])
+    sensitivity_score = 75
+    n_neighbors = 10
+    # Act
+    (df_out, weights, diagnostics) = detect_multivariate_statistical(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    print(df_out.sort_values(by=['anomaly_score']))
+    # Assert
+    assert(number_of_anomalies == df_out[df_out['is_anomaly'] == True].shape[0])
+
+sample_input_no_outliers = [["1604", [87,16,6184.90844,0.771,11.72]],
+["1604", [87.0,16,6184.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.4,16,6186.90844,0.771,11.72]],
+["1604", [87.5,16,6185.90844,0.771,11.72]],
+["1604", [87.6,16,6184.90844,0.771,11.72]],
+["1604", [87.7,16,6183.90844,0.771,11.72]],
+["1604", [87.8,16,6182.90844,0.771,11.72]],
+["1604", [87.9,16,6181.90844,0.771,11.72]],
+["1604", [87.0,16,6180.90844,0.771,11.72]],
+["1604", [87.1,16,6189.90844,0.771,11.72]],
+["1604", [87.2,16,6188.90844,0.771,11.72]],
+["1604", [87.3,16,6187.90844,0.771,11.72]],
+["1604", [87.3,16,6186.90844,0.771,11.72]],
+["1604", [87.4,16,6185.90844,0.771,11.72]],
+["1604", [87.5,16,6184.90844,0.771,11.72]],
+["1604", [87.6,16,6183.90844,0.771,11.72]],
+["1604", [87.7,16,6182.90844,0.771,11.72]],
+["1604", [87.8,16,6181.90844,0.771,11.72]],
+["1604", [87.9,16,6185.90844,0.771,11.72]], # Changed because LOCI catches the "double-extreme" test case.
+["1604", [87.0,16,6189.90844,0.771,11.72]],
+["1604", [87.1,16,6188.90844,0.771,11.72]],
+["1604", [87.2,16,6187.90844,0.771,11.72]]]
+
+@pytest.mark.parametrize("df_input, sensitivity_score, number_of_anomalies", [
+    (sample_input_no_outliers, 100, 0),
+    (sample_input_no_outliers, 50, 0),
+    (sample_input_no_outliers, 40, 0),
+    (sample_input_no_outliers, 25, 0),
+    (sample_input_no_outliers, 9, 0),
+    (sample_input_no_outliers, 8, 0),
+    (sample_input_no_outliers, 5, 0),
+    (sample_input_no_outliers, 1, 0),
+    (sample_input_no_outliers, 0, 0),
+])
+def test_detect_multivariate_cof_none_sensitivity(df_input, sensitivity_score, number_of_anomalies):
+    # Arrange
+    df = pd.DataFrame(df_input, columns=["key", "vals"])
+    max_fraction_anomalies = 1.0
+    n_neighbors = 10
+    # Act
+    (df_out, weights, diagnostics) = detect_multivariate_statistical(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    print(df_out.sort_values(by=['anomaly_score']))
+    # Assert
+    assert(number_of_anomalies == df_out[df_out['is_anomaly'] == True].shape[0])
+
+@pytest.mark.parametrize("df_input, max_fraction_anomalies, number_of_anomalies", [
+    (sample_input_no_outliers, 1.0, 0),
+    (sample_input_no_outliers, 0.4, 0),
+    (sample_input_no_outliers, 0.3, 0),
+    (sample_input_no_outliers, 0.2, 0),
+    (sample_input_no_outliers, 0.1, 0),
+    (sample_input_no_outliers, 0.05, 0),
+    (sample_input_no_outliers, 0, 0),
+])
+def test_detect_multivariate_cof_none_fraction(df_input, max_fraction_anomalies, number_of_anomalies):
+    # Arrange
+    df = pd.DataFrame(df_input, columns=["key", "vals"])
+    sensitivity_score = 75
+    n_neighbors = 10
+    # Act
+    (df_out, weights, diagnostics) = detect_multivariate_statistical(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    print(df_out.sort_values(by=['anomaly_score']))
+    # Assert
+    assert(number_of_anomalies == df_out[df_out['is_anomaly'] == True].shape[0])

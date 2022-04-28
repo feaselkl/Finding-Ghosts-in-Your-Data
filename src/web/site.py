@@ -3,12 +3,13 @@ import requests
 import pandas as pd
 import json
 import plotly.express as px
+import ast
 
 st.set_page_config(layout="wide")
 
 @st.cache
-def process(server_url, method, sensitivity_score, debug, input_data_set):
-    full_server_url = f"{server_url}/{method}?sensitivity_score={sensitivity_score}&debug={debug}"
+def process(server_url, method, sensitivity_score, max_fraction_anomalies, debug, input_data_set):
+    full_server_url = f"{server_url}/{method}?sensitivity_score={sensitivity_score}&max_fraction_anomalies={max_fraction_anomalies}&debug={debug}&n_neighbors=5"
     r = requests.post(
         full_server_url,
         data=input_data_set,
@@ -25,6 +26,11 @@ def convert_univariate_list_to_json(univariate_str):
     df = pd.DataFrame(univariate_list, columns={"value"})
     df["key"] = ""
     return df.to_json(orient="records")
+
+@st.cache
+def convert_multivariate_list_to_json(multivariate_str):
+    mv_ast = ast.literal_eval(multivariate_str)
+    return json.dumps([{"key": k, "vals": v} for idx,[k,v] in enumerate(mv_ast)])
 
 def main():
     st.write(
@@ -43,8 +49,9 @@ def main():
     server_url = "http://localhost/detect"
     method = st.selectbox(label="Choose the method you wish to use.", options = ("univariate", "multivariate", "single_timeseries", "multi_timeseries"))
     sensitivity_score = st.slider(label = "Choose a sensitivity score.", min_value=1, max_value=100, value=50)
+    max_fraction_anomalies = st.slider(label = "Choose a max fraction of anomalies.", min_value=0.01, max_value=1.0, value=0.1)
     debug = st.checkbox(label="Run in Debug mode?")
-    if method == "univariate":
+    if method == "univariate" or method == "multivariate":
         convert_to_json = st.checkbox(label="Convert data in list to JSON format?  If you check this box, enter data as a comma-separated list of values.")
     
     if method == "univariate":
@@ -59,13 +66,27 @@ def main():
     ]"""
     elif method == "multivariate":
         starting_data_set = """[
-        {"key": "1","value": [1, 2]},
-        {"key": "2", "value": 2},
-        {"key": "3", "value": 3},
-        {"key": "4", "value": 4},
-        {"key": "5", "value": 5},
-        {"key": "6", "value": 6},
-        {"key": "8", "value": 95}
+        {"key":1,"vals":[22.46, 17.69, 8.04, 14.11]},
+        {"key":2,"vals":[22.56, 17.69, 8.04, 14.11]},
+        {"key":3,"vals":[22.66, 17.69, 8.04, 14.11]},
+        {"key":4,"vals":[22.76, 17.69, 8.04, 14.11]},
+        {"key":5,"vals":[22.896, 17.69, 8.04, 14.11]},
+        {"key":6,"vals":[22.9, 22.69, 8.04, 14.11]},
+        {"key":7,"vals":[22.06, 17.69, 8.04, 14.11]},
+        {"key":8,"vals":[22.16, 17.69, 9.15, 14.11]},
+        {"key":9,"vals":[22.26, 17.69, 8.04, 14.11]},
+        {"key":10,"vals":[22.36, 178.69, 8.04, 14.11]},
+        {"key":11,"vals":[22.46, 17.69, 8.04, 14.11]},
+        {"key":12,"vals":[22.56, 17.69, 8.04, 14.11]},
+        {"key":13,"vals":[22.66, 17.69, 8.04, 14.11]},
+        {"key":14,"vals":[22.76, 17.69, 8.04, 14.11]},
+        {"key":15,"vals":[22.86, 17.69, 8.04, 14.11]},
+        {"key":16,"vals":[22.76, 17.69, 8.04, 14.11]},
+        {"key":17,"vals":[22.66, 17.69, 8.04, 14.11]},
+        {"key":18,"vals":[22.56, 17.69, 8.04, 14.11]},
+        {"key":19,"vals":[22.46, 17.69, 8.04, 14.11]},
+        {"key":20,"vals":[22.36, 17.69, 8.04, 14.11]},
+        {"key":21,"vals":[22.26, 17.69, 8.04, 14.11]}
     ]"""
     elif method == "single_timeseries":
         starting_data_set = """[
@@ -94,65 +115,94 @@ def main():
     if st.button(label="Detect!"):
         if method=="univariate" and convert_to_json:
             input_data = convert_univariate_list_to_json(input_data)
-        resp = process(server_url, method, sensitivity_score, debug, input_data)
+        if method=="multivariate" and convert_to_json:
+            input_data = convert_multivariate_list_to_json(input_data)
+        resp = process(server_url, method, sensitivity_score, max_fraction_anomalies, debug, input_data)
         res = json.loads(resp.content)
         df = pd.DataFrame(res['anomalies'])
 
-        st.header('Anomaly score per data point')
-        colors = {True: 'red', False: 'blue'}
-        g = px.scatter(df, x=df["value"], y=df["anomaly_score"], color=df["is_anomaly"], color_discrete_map=colors,
-                    symbol=df["is_anomaly"], symbol_sequence=['square', 'circle'],
-                    hover_data=["sds", "mads", "iqrs", "grubbs", "gesd", "dixon", "gaussian_mixture"])
-        st.plotly_chart(g, use_container_width=True)
+        if method=="univariate":
+            st.header('Anomaly score per data point')
+            colors = {True: '#481567', False: '#3CBB75'}
+            g = px.scatter(df, x=df["value"], y=df["anomaly_score"], color=df["is_anomaly"], color_discrete_map=colors,
+                        symbol=df["is_anomaly"], symbol_sequence=['square', 'circle'],
+                        hover_data=["sds", "mads", "iqrs", "grubbs", "gesd", "dixon", "gaussian_mixture"])
+            st.plotly_chart(g, use_container_width=True)
 
 
-        tbl = df[['key', 'value', 'anomaly_score', 'is_anomaly', 'sds', 'mads', 'iqrs', 'grubbs', 'gesd', 'dixon', 'gaussian_mixture']]
-        st.write(tbl)
+            tbl = df[['key', 'value', 'anomaly_score', 'is_anomaly', 'sds', 'mads', 'iqrs', 'grubbs', 'gesd', 'dixon', 'gaussian_mixture']]
+            st.write(tbl)
 
-        if debug:
-            col11, col12 = st.columns(2)
+            if debug:
+                col11, col12 = st.columns(2)
 
-            with col11:                
-                st.header('Debug weights')
-                st.write(res['debug_weights'])
+                with col11:                
+                    st.header('Debug weights')
+                    st.write(res['debug_weights'])
 
-            with col12:
-                st.header("Tests Run")
-                st.write(res['debug_details']['Test diagnostics']['Tests Run'])
-                if "Extended tests" in res['debug_details']['Test diagnostics']:
-                    st.write(res['debug_details']['Test diagnostics']['Extended tests'])
-                if "Gaussian mixture test" in res['debug_details']['Test diagnostics']:
-                    st.write(res['debug_details']['Test diagnostics']['Gaussian mixture test'])
+                with col12:
+                    st.header("Tests Run")
+                    st.write(res['debug_details']['Test diagnostics']['Tests Run'])
+                    if "Extended tests" in res['debug_details']['Test diagnostics']:
+                        st.write(res['debug_details']['Test diagnostics']['Extended tests'])
+                    if "Gaussian mixture test" in res['debug_details']['Test diagnostics']:
+                        st.write(res['debug_details']['Test diagnostics']['Gaussian mixture test'])
 
-            col21, col22 = st.columns(2)
+                col21, col22 = st.columns(2)
 
-            with col21:
-                st.header("Base Calculations")
-                st.write(res['debug_details']['Test diagnostics']['Base calculations'])
+                with col21:
+                    st.header("Base Calculations")
+                    st.write(res['debug_details']['Test diagnostics']['Base calculations'])
 
-            with col22:
-                st.header("Fitted Calculations")
-                if "Fitted calculations" in res['debug_details']['Test diagnostics']:
-                    st.write(res['debug_details']['Test diagnostics']['Fitted calculations'])
+                with col22:
+                    st.header("Fitted Calculations")
+                    if "Fitted calculations" in res['debug_details']['Test diagnostics']:
+                        st.write(res['debug_details']['Test diagnostics']['Fitted calculations'])
 
-            col31, col32 = st.columns(2)
+                col31, col32 = st.columns(2)
 
-            with col31:
-                st.header("Initial Normality Checks")
-                if "Initial normality checks" in res['debug_details']['Test diagnostics']:
-                    st.write(res['debug_details']['Test diagnostics']['Initial normality checks'])
+                with col31:
+                    st.header("Initial Normality Checks")
+                    if "Initial normality checks" in res['debug_details']['Test diagnostics']:
+                        st.write(res['debug_details']['Test diagnostics']['Initial normality checks'])
 
-            with col32:
-                st.header("Fitted Normality Checks")
-                if "Fitted Lambda" in res['debug_details']['Test diagnostics']:
-                    st.write(f"Fitted Lambda = {res['debug_details']['Test diagnostics']['Fitted Lambda']}")
-                if "Fitted normality checks" in res['debug_details']['Test diagnostics']:
-                    st.write(res['debug_details']['Test diagnostics']['Fitted normality checks'])
-                if "Fitting Status" in res['debug_details']['Test diagnostics']:
-                    st.write(res['debug_details']['Test diagnostics']["Fitting Status"])
+                with col32:
+                    st.header("Fitted Normality Checks")
+                    if "Fitted Lambda" in res['debug_details']['Test diagnostics']:
+                        st.write(f"Fitted Lambda = {res['debug_details']['Test diagnostics']['Fitted Lambda']}")
+                    if "Fitted normality checks" in res['debug_details']['Test diagnostics']:
+                        st.write(res['debug_details']['Test diagnostics']['Fitted normality checks'])
+                    if "Fitting Status" in res['debug_details']['Test diagnostics']:
+                        st.write(res['debug_details']['Test diagnostics']["Fitting Status"])
 
-            st.header("Full Debug Details")
-            st.json(res['debug_details'])
+                st.header("Full Debug Details")
+                st.json(res['debug_details'])
+        elif method=="multivariate":
+            st.header('Anomaly score per data point')
+            colors = {True: '#481567', False: '#3CBB75'}
+            df = df.sort_values(by=['anomaly_score'], ascending=False)
+            g = px.bar(df, x=df["key"], y=df["anomaly_score"], color=df["is_anomaly"], color_discrete_map=colors,
+                        hover_data=["vals", "anomaly_score_cof", "anomaly_score_loci", "anomaly_score_copod"], log_y=True)
+            st.plotly_chart(g, use_container_width=True)
+
+
+            tbl = df[['key', 'vals', 'anomaly_score', 'is_anomaly', 'anomaly_score_cof', 'anomaly_score_loci', 'anomaly_score_copod']]
+            st.write(tbl)
+
+            if debug:
+                col11, col12 = st.columns(2)
+
+                with col11:                
+                    st.header("Tests Run")
+                    st.write(res['debug_details']['Tests run'])
+                    st.write(res['debug_details']['Test diagnostics'])
+
+                with col12:
+                    st.header("Outlier Determinants")
+                    st.write(res['debug_details']['Outlier determination'])
+
+                st.header("Full Debug Details")
+                st.json(res['debug_details'])
 
 
 if __name__ == "__main__":
