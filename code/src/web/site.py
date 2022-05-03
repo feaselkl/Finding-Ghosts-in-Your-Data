@@ -9,7 +9,7 @@ st.set_page_config(layout="wide")
 
 @st.cache
 def process(server_url, method, sensitivity_score, max_fraction_anomalies, debug, input_data_set):
-    full_server_url = f"{server_url}/{method}?sensitivity_score={sensitivity_score}&max_fraction_anomalies={max_fraction_anomalies}&debug={debug}&n_neighbors=5"
+    full_server_url = f"{server_url}/{method}?sensitivity_score={sensitivity_score}&max_fraction_anomalies={max_fraction_anomalies}&debug={debug}"
     r = requests.post(
         full_server_url,
         data=input_data_set,
