@@ -16,3 +16,5 @@ seaborn
 plotly.express
 # Chapter 11 requirements
 combo
+# Chapter 14 requirements
+ruptures
