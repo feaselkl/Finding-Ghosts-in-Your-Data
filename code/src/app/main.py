@@ -64,16 +64,13 @@ def post_multivariate(
     results = { "anomalies": json.loads(df.to_json(orient='records')) }
     
     if (debug):
-        # TODO:  add debug data
-        # Weights, ensemble details, etc.
-        results.update({ "debug_msg": "This is a logging message." })
         results.update({ "debug_weights": weights })
         results.update({ "debug_details": details })
     return results
     
 
 # Time series anomaly detection
-# For more information on this, review chapters 13-15
+# For more information on this, review chapters 13-14
 class Single_TimeSeries_Input(BaseModel):
     key: str
     dt: datetime.datetime
@@ -84,26 +81,22 @@ def post_time_series_single(
     input_data: List[Single_TimeSeries_Input],
     sensitivity_score: float = 50,
     max_fraction_anomalies: float = 1.0,
-    n_neighbors: int = 10,
     debug: bool = False
 ):
     df = pd.DataFrame(i.__dict__ for i in input_data)
     
-    (df, weights, details) = single_timeseries.detect_single_timeseries(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    (df, weights, details) = single_timeseries.detect_single_timeseries(df, sensitivity_score, max_fraction_anomalies)
     
-    results = { "anomalies": json.loads(df.to_json(orient='records')) }
+    results = { "anomalies": json.loads(df.to_json(orient='records', date_format='iso')) }
     
     if (debug):
-        # TODO:  add debug data
-        # Weights, ensemble details, etc.
-        results.update({ "debug_msg": "This is a logging message." })
         results.update({ "debug_weights": weights })
         results.update({ "debug_details": details })
     return results
     
 
 # Multiple time series anomaly detection
-# For more information on this, review chapters 16-18
+# For more information on this, review chapters 15-17
 class Multi_TimeSeries_Input(BaseModel):
     key: str
     series_key: str

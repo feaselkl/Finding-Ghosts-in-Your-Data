@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import json
 import plotly.express as px
+import plotly.graph_objects as go
 import ast
 
 st.set_page_config(layout="wide")
@@ -32,6 +33,11 @@ def convert_multivariate_list_to_json(multivariate_str):
     mv_ast = ast.literal_eval(multivariate_str)
     return json.dumps([{"key": k, "vals": v} for idx,[k,v] in enumerate(mv_ast)])
 
+@st.cache
+def convert_single_time_series_list_to_json(time_series_str):
+    mv_ast = ast.literal_eval(time_series_str)
+    return json.dumps([{"key": k, "dt":dt, "value": v} for idx,[k,dt,v] in enumerate(mv_ast)])
+
 def main():
     st.write(
     """
@@ -47,11 +53,11 @@ def main():
     )
 
     server_url = "http://localhost/detect"
-    method = st.selectbox(label="Choose the method you wish to use.", options = ("univariate", "multivariate", "single_timeseries", "multi_timeseries"))
+    method = st.selectbox(label="Choose the method you wish to use.", options = ("univariate", "multivariate", "timeseries/single", "multi_timeseries"))
     sensitivity_score = st.slider(label = "Choose a sensitivity score.", min_value=1, max_value=100, value=50)
     max_fraction_anomalies = st.slider(label = "Choose a max fraction of anomalies.", min_value=0.01, max_value=1.0, value=0.1)
     debug = st.checkbox(label="Run in Debug mode?")
-    if method == "univariate" or method == "multivariate":
+    if method == "univariate" or method == "multivariate" or method == "timeseries/single":
         convert_to_json = st.checkbox(label="Convert data in list to JSON format?  If you check this box, enter data as a comma-separated list of values.")
     
     if method == "univariate":
@@ -88,15 +94,27 @@ def main():
         {"key":20,"vals":[22.36, 17.69, 8.04, 14.11]},
         {"key":21,"vals":[22.26, 17.69, 8.04, 14.11]}
     ]"""
-    elif method == "single_timeseries":
+    elif method == "timeseries/single":
         starting_data_set = """[
-        {"key": "1","value": 1},
-        {"key": "2", "value": 2},
-        {"key": "3", "value": 3},
-        {"key": "4", "value": 4},
-        {"key": "5", "value": 5},
-        {"key": "6", "value": 6},
-        {"key": "8", "value": 95}
+        {"key": "188", "dt": "2021-01-06T17:00:00Z", "value": 18.360001},
+        {"key": "189", "dt": "2021-01-07T17:00:00Z", "value": 18.08},
+        {"key": "190", "dt": "2021-01-08T17:00:00Z", "value": 17.690001},
+        {"key": "191", "dt": "2021-01-11T17:00:00Z", "value": 19.940001},
+        {"key": "192", "dt": "2021-01-12T17:00:00Z", "value": 19.950001},
+        {"key": "193", "dt": "2021-01-13T17:00:00Z", "value": 31.4},
+        {"key": "194", "dt": "2021-01-14T17:00:00Z", "value": 39.91},
+        {"key": "195", "dt": "2021-01-15T17:00:00Z", "value": 35.5},
+        {"key": "196", "dt": "2021-01-19T17:00:00Z", "value": 39.360001},
+        {"key": "197", "dt": "2021-01-20T17:00:00Z", "value": 39.119999},
+        {"key": "198", "dt": "2021-01-21T17:00:00Z", "value": 43.029999},
+        {"key": "199", "dt": "2021-01-22T17:00:00Z", "value": 65.010002},
+        {"key": "200", "dt": "2021-01-25T17:00:00Z", "value": 76.790001},
+        {"key": "201", "dt": "2021-01-26T17:00:00Z", "value": 147.979996},
+        {"key": "202", "dt": "2021-01-27T17:00:00Z", "value": 347.51001},
+        {"key": "203", "dt": "2021-01-28T17:00:00Z", "value": 193.600006},
+        {"key": "204", "dt": "2021-01-29T17:00:00Z", "value": 325},
+        {"key": "205", "dt": "2021-02-01T17:00:00Z", "value": 225},
+        {"key": "206", "dt": "2021-02-02T17:00:00Z", "value": 90}
     ]"""
     elif method == "multi_timeseries":
         starting_data_set = """[
@@ -117,6 +135,8 @@ def main():
             input_data = convert_univariate_list_to_json(input_data)
         if method=="multivariate" and convert_to_json:
             input_data = convert_multivariate_list_to_json(input_data)
+        if method == "timeseries/single" and convert_to_json:
+            input_data = convert_single_time_series_list_to_json(input_data)
         resp = process(server_url, method, sensitivity_score, max_fraction_anomalies, debug, input_data)
         res = json.loads(resp.content)
         df = pd.DataFrame(res['anomalies'])
@@ -199,6 +219,33 @@ def main():
 
                 with col12:
                     st.header("Outlier Determinants")
+                    st.write(res['debug_details']['Outlier determination'])
+
+                st.header("Full Debug Details")
+                st.json(res['debug_details'])
+        elif method=="timeseries/single":
+            st.header('Anomaly score per data point')
+            colors = {True: '#481567', False: '#3CBB75'}
+            l = px.line(df, x=df["dt"], y=df["value"], markers=False)
+            l.update_traces(line=dict(color = 'rgba(50,50,50,0.2)'))
+            s = px.scatter(df, x=df["dt"], y=df["value"], color=df["is_anomaly"], color_discrete_map=colors,
+                        symbol=df["is_anomaly"], symbol_sequence=['square', 'circle'],
+                        hover_data=["anomaly_score"])
+            g = go.Figure(data=l.data + s.data)
+            st.plotly_chart(g, use_container_width=True)
+
+            tbl = df[['key', 'dt', 'value', 'anomaly_score', 'is_anomaly']]
+            st.write(tbl)
+
+            if debug:
+                col11, col12 = st.columns(2)
+
+                with col11:                
+                    st.header("Test diagnostics")
+                    st.write(res['debug_details']['Test diagnostics'])
+
+                with col12:
+                    st.header("Outlier determination")
                     st.write(res['debug_details']['Outlier determination'])
 
                 st.header("Full Debug Details")
