@@ -18,3 +18,5 @@ plotly.express
 combo
 # Chapter 14 requirements
 ruptures
+# Chapter 17 requirements
+tslearn

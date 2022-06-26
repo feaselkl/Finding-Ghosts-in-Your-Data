@@ -108,19 +108,15 @@ def post_time_series_multiple(
     input_data: List[Multi_TimeSeries_Input],
     sensitivity_score: float = 50,
     max_fraction_anomalies: float = 1.0,
-    n_neighbors: int = 10,
     debug: bool = False
 ):
     df = pd.DataFrame(i.__dict__ for i in input_data)
 
-    (df, weights, details) = multi_timeseries.detect_multi_timeseries(df, sensitivity_score, max_fraction_anomalies, n_neighbors)
+    (df, weights, details) = multi_timeseries.detect_multi_timeseries(df, sensitivity_score, max_fraction_anomalies)
     
-    results = { "anomalies": json.loads(df.to_json(orient='records')) }
+    results = { "anomalies": json.loads(df.to_json(orient='records', date_format='iso')) }
     
     if (debug):
-        # TODO:  add debug data
-        # Weights, ensemble details, etc.
-        results.update({ "debug_msg": "This is a logging message." })
         results.update({ "debug_weights": weights })
         results.update({ "debug_details": details })
     return results

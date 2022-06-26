@@ -38,6 +38,11 @@ def convert_single_time_series_list_to_json(time_series_str):
     mv_ast = ast.literal_eval(time_series_str)
     return json.dumps([{"key": k, "dt":dt, "value": v} for idx,[k,dt,v] in enumerate(mv_ast)])
 
+@st.cache
+def convert_multi_time_series_list_to_json(time_series_str):
+    mv_ast = ast.literal_eval(time_series_str)
+    return json.dumps([{"key": k, "series_key":sk, "dt":dt, "value": v} for idx,[k,sk,dt,v] in enumerate(mv_ast)])
+
 def main():
     st.write(
     """
@@ -53,12 +58,11 @@ def main():
     )
 
     server_url = "http://localhost/detect"
-    method = st.selectbox(label="Choose the method you wish to use.", options = ("univariate", "multivariate", "timeseries/single", "multi_timeseries"))
+    method = st.selectbox(label="Choose the method you wish to use.", options = ("univariate", "multivariate", "timeseries/single", "timeseries/multiple"))
     sensitivity_score = st.slider(label = "Choose a sensitivity score.", min_value=1, max_value=100, value=50)
     max_fraction_anomalies = st.slider(label = "Choose a max fraction of anomalies.", min_value=0.01, max_value=1.0, value=0.1)
     debug = st.checkbox(label="Run in Debug mode?")
-    if method == "univariate" or method == "multivariate" or method == "timeseries/single":
-        convert_to_json = st.checkbox(label="Convert data in list to JSON format?  If you check this box, enter data as a comma-separated list of values.")
+    convert_to_json = st.checkbox(label="Convert data in list to JSON format?  If you check this box, enter data as a comma-separated list of values.")
     
     if method == "univariate":
         starting_data_set = """[
@@ -116,15 +120,59 @@ def main():
         {"key": "205", "dt": "2021-02-01T17:00:00Z", "value": 225},
         {"key": "206", "dt": "2021-02-02T17:00:00Z", "value": 90}
     ]"""
-    elif method == "multi_timeseries":
+    elif method == "timeseries/multiple":
         starting_data_set = """[
-        {"key": "1","value": 1},
-        {"key": "2", "value": 2},
-        {"key": "3", "value": 3},
-        {"key": "4", "value": 4},
-        {"key": "5", "value": 5},
-        {"key": "6", "value": 6},
-        {"key": "8", "value": 95}
+        {"key": "k1",  "series_key": "s1", "dt": "2021-12-11T08:00:00Z", "value": 14.3},
+        {"key": "k2",  "series_key": "s1", "dt": "2021-12-11T09:00:00Z", "value": 15.3},
+        {"key": "k3",  "series_key": "s1", "dt": "2021-12-11T10:00:00Z", "value": 15.8},
+        {"key": "k4",  "series_key": "s1", "dt": "2021-12-11T11:00:00Z", "value": 16.2},
+        {"key": "k5",  "series_key": "s1", "dt": "2021-12-11T12:00:00Z", "value": 16.4},
+        {"key": "k6",  "series_key": "s1", "dt": "2021-12-11T13:00:00Z", "value": 16.5},
+        {"key": "k7",  "series_key": "s1", "dt": "2021-12-11T14:00:00Z", "value": 16.3},
+        {"key": "k8",  "series_key": "s1", "dt": "2021-12-11T15:00:00Z", "value": 16.0},
+        {"key": "k9",  "series_key": "s1", "dt": "2021-12-11T16:00:00Z", "value": 15.5},
+        {"key": "k10", "series_key": "s1", "dt": "2021-12-11T17:00:00Z", "value": 15.1},
+        {"key": "k11", "series_key": "s1", "dt": "2021-12-11T18:00:00Z", "value": 14.6},
+        {"key": "k12", "series_key": "s1", "dt": "2021-12-11T19:00:00Z", "value": 14.4},
+        {"key": "k13", "series_key": "s1", "dt": "2021-12-11T20:00:00Z", "value": 14.1},
+        {"key": "k14", "series_key": "s1", "dt": "2021-12-11T21:00:00Z", "value": 13.9},
+        {"key": "k15", "series_key": "s1", "dt": "2021-12-11T22:00:00Z", "value": 13.7},
+        {"key": "k16", "series_key": "s1", "dt": "2021-12-11T23:00:00Z", "value": 190.8},
+        {"key": "k17", "series_key": "s1", "dt": "2021-12-12T00:00:00Z", "value": 193.7},
+        {"key": "k1a", "series_key": "s2", "dt": "2021-12-11T08:00:00Z", "value": 24.3},
+        {"key": "k2a", "series_key": "s2", "dt": "2021-12-11T09:00:00Z", "value": 25.3},
+        {"key": "k3a", "series_key": "s2", "dt": "2021-12-11T10:00:00Z", "value": 25.8},
+        {"key": "k4a", "series_key": "s2", "dt": "2021-12-11T11:00:00Z", "value": 26.2},
+        {"key": "k5a", "series_key": "s2", "dt": "2021-12-11T12:00:00Z", "value": 26.4},
+        {"key": "k6a", "series_key": "s2", "dt": "2021-12-11T13:00:00Z", "value": 26.5},
+        {"key": "k7a", "series_key": "s2", "dt": "2021-12-11T14:00:00Z", "value": 26.3},
+        {"key": "k8a", "series_key": "s2", "dt": "2021-12-11T15:00:00Z", "value": 26.0},
+        {"key": "k9a", "series_key": "s2", "dt": "2021-12-11T16:00:00Z", "value": 25.5},
+        {"key": "k10a","series_key": "s2", "dt": "2021-12-11T17:00:00Z", "value": 25.1},
+        {"key": "k11a","series_key": "s2", "dt": "2021-12-11T18:00:00Z", "value": 24.6},
+        {"key": "k12a","series_key": "s2", "dt": "2021-12-11T19:00:00Z", "value": 24.4},
+        {"key": "k13a","series_key": "s2", "dt": "2021-12-11T20:00:00Z", "value": 4.1},
+        {"key": "k14a","series_key": "s2", "dt": "2021-12-11T21:00:00Z", "value": 213.9},
+        {"key": "k15a","series_key": "s2", "dt": "2021-12-11T22:00:00Z", "value": 23.7},
+        {"key": "k16a","series_key": "s2", "dt": "2021-12-11T23:00:00Z", "value": 17.8},
+        {"key": "k17a","series_key": "s2", "dt": "2021-12-12T00:00:00Z", "value": 183.7},
+        {"key": "k1b", "series_key": "s3", "dt": "2021-12-11T08:00:00Z", "value": 28.3},
+        {"key": "k2b", "series_key": "s3", "dt": "2021-12-11T09:00:00Z", "value": 29.3},
+        {"key": "k3b", "series_key": "s3", "dt": "2021-12-11T10:00:00Z", "value": 29.8},
+        {"key": "k4b", "series_key": "s3", "dt": "2021-12-11T11:00:00Z", "value": 30.2},
+        {"key": "k5b", "series_key": "s3", "dt": "2021-12-11T12:00:00Z", "value": 22.4},
+        {"key": "k6b", "series_key": "s3", "dt": "2021-12-11T13:00:00Z", "value": 24.5},
+        {"key": "k7b", "series_key": "s3", "dt": "2021-12-11T14:00:00Z", "value": 28.3},
+        {"key": "k8b", "series_key": "s3", "dt": "2021-12-11T15:00:00Z", "value": 21.0},
+        {"key": "k9b", "series_key": "s3", "dt": "2021-12-11T16:00:00Z", "value": 25.5},
+        {"key": "k10b","series_key": "s3", "dt": "2021-12-11T17:00:00Z", "value": 30.1},
+        {"key": "k11b","series_key": "s3", "dt": "2021-12-11T18:00:00Z", "value": 33.6},
+        {"key": "k12b","series_key": "s3", "dt": "2021-12-11T19:00:00Z", "value": 32.4},
+        {"key": "k13b","series_key": "s3", "dt": "2021-12-11T20:00:00Z", "value": 19.1},
+        {"key": "k14b","series_key": "s3", "dt": "2021-12-11T21:00:00Z", "value": 122.9},
+        {"key": "k15b","series_key": "s3", "dt": "2021-12-11T22:00:00Z", "value": 23.7},
+        {"key": "k16b","series_key": "s3", "dt": "2021-12-11T23:00:00Z", "value": 215.8},
+        {"key": "k17b","series_key": "s3", "dt": "2021-12-12T00:00:00Z", "value": 298.7}
     ]"""
     else:
         starting_data_set = "Select a method."
@@ -137,6 +185,8 @@ def main():
             input_data = convert_multivariate_list_to_json(input_data)
         if method == "timeseries/single" and convert_to_json:
             input_data = convert_single_time_series_list_to_json(input_data)
+        if method == "timeseries/multiple" and convert_to_json:
+            input_data = convert_multi_time_series_list_to_json(input_data)
         resp = process(server_url, method, sensitivity_score, max_fraction_anomalies, debug, input_data)
         res = json.loads(resp.content)
         df = pd.DataFrame(res['anomalies'])
@@ -235,6 +285,42 @@ def main():
             st.plotly_chart(g, use_container_width=True)
 
             tbl = df[['key', 'dt', 'value', 'anomaly_score', 'is_anomaly']]
+            st.write(tbl)
+
+            if debug:
+                col11, col12 = st.columns(2)
+
+                with col11:                
+                    st.header("Test diagnostics")
+                    st.write(res['debug_details']['Test diagnostics'])
+
+                with col12:
+                    st.header("Outlier determination")
+                    st.write(res['debug_details']['Outlier determination'])
+
+                st.header("Full Debug Details")
+                st.json(res['debug_details'])
+        elif method=="timeseries/multiple":
+            st.header('Anomaly score per segment')
+            df_mean = df.groupby("dt", as_index=False).mean("value")
+            df_mean['series_key'] = "mean"
+            ml = px.line(df_mean, x=df_mean["dt"], y=df_mean["value"], color=df_mean["series_key"], markers=False)
+            ml.update_traces(line=dict(color = 'rgba(20,20,20,0.45)'))
+            l = px.line(df, x=df["dt"], y=df["value"], color=df["series_key"], markers=False,
+                color_discrete_sequence=px.colors.qualitative.Safe)
+            # Render mode SVG is the default up to 1000 data points.  After that, the default is WebGL, which does
+            # not include hover data. Because multi-series time series may
+            # exceed 1000 points, we explicitly include it here so we can see the hover data.
+            # Note that this may slow down graph loading for large graphs.
+            s = px.scatter(df, x=df["dt"], y=df["value"], color=df["series_key"], 
+                        symbol=df["is_anomaly"], symbol_sequence=['square', 'circle'],
+                        hover_data=["key", "anomaly_score", "segment_number", "is_anomaly"], render_mode="svg",
+                        color_discrete_sequence=px.colors.qualitative.Safe)
+            s.update_traces(marker_size=9, showlegend=False)
+            g = go.Figure(data=l.data + s.data + ml.data)
+            st.plotly_chart(g, use_container_width=True)
+
+            tbl = df[['key', 'series_key', 'dt', 'segment_number', 'value', 'anomaly_score', 'is_anomaly']]
             st.write(tbl)
 
             if debug:
