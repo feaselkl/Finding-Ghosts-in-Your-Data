@@ -438,4 +438,4 @@ def determine_outliers(
     # Otherwise, sensitivity score stays the same and we operate as normal.
     if max_fraction_anomaly_score > sensitivity_score and max_fraction_anomalies < 1.0:
         sensitivity_score = max_fraction_anomaly_score
-    return df.assign(is_anomaly=(df['anomaly_score'] > sensitivity_score))
+    return df.assign(is_anomaly=(df['anomaly_score'] >= sensitivity_score))

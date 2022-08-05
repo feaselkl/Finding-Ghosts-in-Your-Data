@@ -95,9 +95,9 @@ def test_detect_univariate_statistical_sensitivity_affects_anomaly_count(df_inpu
     (anomalous_sample, 0.01, 1),
     (anomalous_sample, 0.1, 2),
     (anomalous_sample, 0.2, 4), # In chapter 7, this is 3; in chapter 9, it increases to 4.
-    (anomalous_sample, 0.3, 4), # In chapter 7, this is 5; in chapter 9, it decreases to 4.
+    (anomalous_sample, 0.3, 6), # In chapter 7, this is 5; in chapter 9, it decreases to 4 without the equivalency change and increases to 6 with it.
     (anomalous_sample, 0.4, 7), # In chapter 7, this is 6; in chapter 9, it increases to 7.
-    (anomalous_sample, 0.5, 7), # In chapter 7, this is 8; in chapter 9, it decreases to 7.
+    (anomalous_sample, 0.5, 9), # In chapter 7, this is 8; in chapter 9, it decreases to 7 without the equivalency change and increases to 9 with it.
     (anomalous_sample, 0.6, 10), # In chapter 7, this is 9; in chapter 9, it increases to 10.
     (anomalous_sample, 0.7, 12),
     (anomalous_sample, 0.8, 13), # In chapter 7, this is 12; in chapter 9, it increases to 13.
