@@ -1742,7 +1742,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost/detect/timeseries/multiple?debug=true&sensitivity_score=40&max_fraction_anomalies=0.25",
+							"raw": "http://localhost/detect/timeseries/multiple?debug=true&sensitivity_score=35&max_fraction_anomalies=0.25",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -1782,9 +1782,9 @@
 									"var body = JSON.parse(responseBody);\r",
 									"pm.test(\"Number of items returned is correct (eq 1136): \" + body[\"anomalies\"].length, function () { pm.expect(body[\"anomalies\"].length).to.eql(1136); });\r",
 									"pm.test(\"Debugging is enabled (debug_details exists):  \" + body[\"debug_details\"], function () { pm.expect(body[\"debug_details\"].exist); });\r",
-									"pm.test(\"Count of anomalies is correct (eq 134)\", () => {\r",
+									"pm.test(\"Count of anomalies is correct (eq 125)\", () => {\r",
 									"    let anomalies = body[\"anomalies\"].filter(a => a.is_anomaly === true);\r",
-									"    pm.expect(anomalies.length).to.eql(134); /* Was 77 in chapter 16 */\r",
+									"    pm.expect(anomalies.length).to.eql(125); /* Was 77 in chapter 16 */\r",
 									"} );"
 								],
 								"type": "text/javascript"
@@ -1844,9 +1844,9 @@
 									"var body = JSON.parse(responseBody);\r",
 									"pm.test(\"Number of items returned is correct (eq 1136): \" + body[\"anomalies\"].length, function () { pm.expect(body[\"anomalies\"].length).to.eql(1136); });\r",
 									"pm.test(\"Debugging is not enabled (debug_details does not exist).\", function () { pm.expect(body[\"debug_details\"]).undefined; });\r",
-									"pm.test(\"Count of anomalies is correct (eq 134)\", () => {\r",
+									"pm.test(\"Count of anomalies is correct (eq 125)\", () => {\r",
 									"    let anomalies = body[\"anomalies\"].filter(a => a.is_anomaly === true);\r",
-									"    pm.expect(anomalies.length).to.eql(134); /* Was 77 in chapter 16 */\r",
+									"    pm.expect(anomalies.length).to.eql(125); /* Was 77 in chapter 16 */\r",
 									"} );"
 								],
 								"type": "text/javascript"

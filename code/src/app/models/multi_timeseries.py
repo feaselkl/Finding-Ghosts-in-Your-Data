@@ -60,18 +60,16 @@ def run_tests(df):
     # We use integer math here to ensure no segment has just 1-2 records and no segment
     # is wildly unbalanced in size compared to the others.  At a minimum,
     # we should have 6 data points per segment.  At a maximum, we can end up with 10.
-    segments = [np.array_split(series[x], (l // 7)) for x in range(num_series)]
-    num_segments = len(segments)
-    num_subsegments = len(segments[0])
+    series_segments = [np.array_split(series[x], (l // 7)) for x in range(num_series)]
+    num_segments = len(series_segments[0])
     num_records = df['key'].shape[0]
 
     diagnostics["Number of records"] = num_records
-    diagnostics["Total number of time series segments"] = num_segments
-    diagnostics["Number of segments per time series"] = num_subsegments
+    diagnostics["Number of segments per time series"] = num_segments
 
-    segment_means = generate_segment_means(segments, num_segments, num_subsegments)
+    segment_means = generate_segment_means(series_segments, num_series, num_segments)
     diagnostics["Segment means"] = segment_means
-    segments_diffstd = check_diffstd(segments, segment_means, num_segments, num_subsegments)
+    segments_diffstd = check_diffstd(series_segments, segment_means, num_series, num_segments)
     # Merge segments together as df.  Segments comes in as a list of lists, each of which contains a DataFrame.
     # First, flatten out the list of lists, giving us a list of DataFrames.
     flattened = [item for sublist in segments_diffstd for item in sublist]
@@ -80,16 +78,16 @@ def run_tests(df):
 
     return (df, tests_run, diagnostics)
 
-def generate_segment_means(segments, num_segments, num_subsegments):
+def generate_segment_means(series_segments, num_series, num_segments):
     means = []
-    for j in range(num_subsegments):
-        C = [segments[i][j]['value'] for i in range(num_segments)]
-        means.append([sum(x)/num_subsegments for x in zip(*C)])
+    for j in range(num_segments):
+        C = [series_segments[i][j]['value'] for i in range(num_series)]
+        means.append([sum(x)/num_series for x in zip(*C)])
     return means
 
 def diffstd(s1v, s2v):
-    # Find the absolute value of differences between the two input segments.
-    dt = [abs(x1 - x2) for (x1, x2) in zip(s1v, s2v)]
+    # Find the differences between the two input segments.
+    dt = [x1 - x2 for (x1, x2) in zip(s1v, s2v)]
     n = len(s1v)
     mu = np.mean(dt)
     # For each difference, square its distance from the mean.  This guarantees all numbers are positive.
@@ -99,13 +97,13 @@ def diffstd(s1v, s2v):
     # these two segments.
     return (np.sum(diff2)/n)**0.5
 
-def check_diffstd(segments, segment_means, num_segments, num_subsegments):
+def check_diffstd(series_segments, segment_means, num_series, num_segments):
     # For each series, make a pairwise comparison against the average.
-    for i in range(num_segments):
-        for j in range(num_subsegments):
-            segments[i][j]['segment_number'] = j
-            segments[i][j]['diffstd_distance'] = diffstd(segments[i][j]['value'], segment_means[j])
-    return segments
+    for i in range(num_series):
+        for j in range(num_segments):
+            series_segments[i][j]['segment_number'] = j
+            series_segments[i][j]['diffstd_distance'] = diffstd(series_segments[i][j]['value'], segment_means[j])
+    return series_segments
 
 def check_sax(series, num_series, l):
     if (l < 100):
@@ -130,15 +128,15 @@ def check_sax(series, num_series, l):
 
     # tslearn gives us the ability to perform pairwise comparisons of SAX results using a distance measure.
     # We will break things into fixed-size chunks of 4 letters, e.g. 1103 | 3111 | 2203
-    # Then, we can perform 1-versus-all comparisons of each block versus the other blocks in the same position.
-    block_size = 4
-    num_blocks = len(sax_data[0])//block_size
+    # Then, we can perform 1-versus-all comparisons of each word versus the other words in the same position.
+    word_size = 4
+    num_words = len(sax_data[0])//word_size
 
     # Create a matrix which will hold the mean score of these pairwise comparisons.
-    m = np.empty((num_series, num_blocks))
+    m = np.empty((num_series, num_words))
     for i in range(num_series):
-        for j in range(num_blocks):
-            # Calculate pairwise distances for each block of SAX results
+        for j in range(num_words):
+            # Calculate pairwise distances for each word of SAX results
             # For example, given three series:
             #  1103 | 1111 | 2203
             #  1100 | 2111 | 2202
@@ -148,21 +146,21 @@ def check_sax(series, num_series, l):
             # m[0][1] would be the average distance between 1111 and 2111 / 3111, etc.
             # The calculation here technically also includes the distance between 1103 and 1103, which is always 0.
             # Therefore, we subtract 1 from num_series and we still get a good average.
-            m[i][j] = sum(sax.distance_sax(sax_data[i][j*block_size:(1+j)*block_size],sax_data[k][j*block_size:(1+j)*block_size])
+            m[i][j] = sum(sax.distance_sax(sax_data[i][j*word_size:(1+j)*word_size],sax_data[k][j*word_size:(1+j)*word_size])
                 for k in range(num_series))/(num_series-1)
 
     diagnostics = {
         "Segment size per letter": segment_split,
         "Number of segments":  l//segment_split,
-        "Block size": block_size,
-        "Number of blocks": num_blocks,
+        "Word size": word_size,
+        "Number of words": num_words,
         "SAX matrix": m.tolist()
     }
 
     # Set the SAX distance for each section of each series.
     for i in range(num_series):
-        # If we have "overflow" (e.g., 19 data points and segment_split=2, use the final block)
-        series[i]['sax_distance'] = [m[i][min(j//(block_size*segment_split), num_blocks-1)] for j,val in enumerate(series[0].index)]
+        # If we have "overflow" (e.g., 19 data points and segment_split=2, use the final word)
+        series[i]['sax_distance'] = [m[i][min(j//(word_size*segment_split), num_words-1)] for j,val in enumerate(series[0].index)]
 
     return (series, diagnostics)
 
@@ -220,12 +218,12 @@ def determine_outliers(
     max_fraction_anomaly_scores = [np.quantile(s['anomaly_score'], 1.0 - max_fraction_anomalies) for s in series]
     diagnostics = {"Max fraction anomaly scores":  max_fraction_anomaly_scores }
 
-    # When scoring outliers, we made 0 the sensitivity threshold.
+    # When scoring outliers, we made 0.01 the sensitivity threshold, as 0 means no differences.
     # If the max fraction anomaly score is greater than 0, it means that we have MORE outliers
     # than our max_fraction_anomalies supports, and therefore we
     # need to cut it off before we get down to our sensitivity score.
     # Otherwise, sensitivity score stays the same and we operate as normal.
-    sensitivity_thresholds = [max(0, mfa) for mfa in max_fraction_anomaly_scores]
+    sensitivity_thresholds = [max(0.01, mfa) for mfa in max_fraction_anomaly_scores]
     diagnostics["Sensitivity scores"] = sensitivity_thresholds
 
     # We treat segments as outliers, not individual data points.  Mark each segment with a sufficiently large

@@ -1742,7 +1742,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost/detect/timeseries/multiple?debug=true&sensitivity_score=40&max_fraction_anomalies=0.25",
+							"raw": "http://localhost/detect/timeseries/multiple?debug=true&sensitivity_score=35&max_fraction_anomalies=0.25",
 							"protocol": "http",
 							"host": [
 								"localhost"
