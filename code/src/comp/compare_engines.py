@@ -37,7 +37,6 @@ def detect_outliers_book(server_url, method, sensitivity_score, max_fraction_ano
     # If anomaly score is greater than 1, set it to 1.0.
     df.loc[df['anomaly_score'] > 1.0, 'anomaly_score'] = 1.0
     df['label'] = 1 * df['is_anomaly']
-    df = df.drop('key', axis=1)
     df = df.drop('dt', axis=1)
     return df
 
@@ -54,6 +53,7 @@ def process_book(data_folder, results_folder):
     sensitivity_score = 55
     max_fraction_anomalies = 0.25
     debug = True
+    # If you are using Linux or MacOS, change any \\ reference to a /.
     for input_file in glob.iglob(data_folder + '**\\*.csv', recursive=True):
         file_location = input_file.replace(data_folder, "")
         file_name = Path(input_file).name
@@ -61,6 +61,7 @@ def process_book(data_folder, results_folder):
         df = detect_outliers_book(server_url, method, sensitivity_score, max_fraction_anomalies, debug, input_data)
         output_file = results_folder + "book\\" + file_location.replace(file_name, "book_" + file_name)
         write_file_book(df, output_file)
+        print('Completed file ' + file_name)
 
 # Helper functions for processing Azure anomaly detection.
 def read_file_azure(input_file):
@@ -92,6 +93,7 @@ def process_azure(data_folder, results_folder):
     ANOMALY_DETECTOR_KEY = os.environ["ANOMALY_DETECTOR_KEY"]
     ANOMALY_DETECTOR_ENDPOINT = os.environ["ANOMALY_DETECTOR_ENDPOINT"]
     client = AnomalyDetectorClient(AzureKeyCredential(ANOMALY_DETECTOR_KEY), ANOMALY_DETECTOR_ENDPOINT)
+    # If you are using Linux or MacOS, change any \\ reference to a /.
     for input_file in glob.iglob(data_folder + '**\\*.csv', recursive=True):
         file_location = input_file.replace(data_folder, "")
         file_name = Path(input_file).name
@@ -104,6 +106,7 @@ def process_azure(data_folder, results_folder):
             df = df.drop('is_anomaly', axis=1)
             output_file = results_folder + "azure\\" + file_location.replace(file_name, "azure_" + file_name)
             write_file_azure(df, output_file)
+            print('Completed file ' + file_name)
         except Exception as e:
             print('Skipping this file because Cognitive Services failed to return a result. {}'.format(file_location), 'Exception: {}'.format(e))
             
@@ -113,6 +116,7 @@ def process_azure(data_folder, results_folder):
 def main():
     # Change these to where you have cloned the NAB repo.
     # https://github.com/numenta/NAB/
+    # If you are using Linux or MacOS, change any \\ reference to a /.
     data_folder = "D:\\SourceCode\\NAB\\data\\"
     results_folder = "D:\\SourceCode\\NAB\\results\\"
     # NOTE:  running this will probably require the S0 tier of Anomaly Detection.
